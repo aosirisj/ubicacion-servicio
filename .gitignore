@@ -1,0 +1,18 @@
+# Ignorar archivos automaticos de macOS, windows y linux
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.swp
+*.bak
+*.tmp
+
+# Ignorar el contenido compilado de la aplicacion de rust
+target/
+.env
+Cargo.lock
+migration/Cargo.lock
+
+
+

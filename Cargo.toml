@@ -1,0 +1,45 @@
+[package]
+name = "ubicacion-servicio"
+version = "0.1.0"
+edition = "2021"
+
+[workspace]
+members = ["migration"]
+
+[dependencies]
+
+actix-multipart = "0.7.2" # Formatos multipart
+actix-web = "4.9.0" # Servidor http
+actix-web-httpauth = "0.8.2" # Funciones de autorizacion
+dotenv = "0.15.0" # Variables de entorno en .env
+futures-util = "0.3.31" # Envio de archivos
+jsonwebtoken = "9.3.1" # Manejo de jwt
+quick-xml = { version = "0.38.0", features = ["serialize"] } # Parsing de XML
+reqwest = { version = "0.12.20", default-features = false, features = [
+    "json",
+    "rustls-tls",
+] }
+serde = { version = "1.0.218", features = [
+    "derive",
+] } # Creacion de tipos con struct para serializacion y deserializacion
+actix-cors = "0.7.1" # CORS
+
+# Dependencias para swagger
+serde_derive = "1.0"
+serde_json = "1.0.139"
+utoipa = { version = "5.3.1", features = ["actix_extras", "chrono"] }
+utoipa-swagger-ui = { version = "9", features = ["actix-web"] }
+
+# Dependencias para sea-orm (leer base nueva de postgres)
+sea-orm = { version = "1.1.13", features = [
+    "sqlx-postgres",
+    "runtime-tokio-native-tls",
+    "macros",
+] }
+migration = { path = "migration" }
+
+regex = { version = "1.11.2", features = ["std"] }
+csv = "1.3.1"
+rust_decimal = { version = "1", features = [
+    "serde",
+] } #Para leer decimales desde csv para catalogos
