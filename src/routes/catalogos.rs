@@ -1,3 +1,5 @@
+//! Endpoints relacionados con catálogos
+//! Ver documentación en Swagger
 use actix_web::{get, web, HttpResponse};
 use sea_orm::DatabaseConnection;
 use utoipa;
@@ -6,6 +8,7 @@ use crate::{controllers::catalogos::*, types::catalogos::*};
 
 // Ruta para buscar estado, municipio y localidades por código postal
 #[utoipa::path(
+    description = "Obtener estado, municipio y localidades a partir de un código postal",
     path = "/api/busqueda-cp/{cp}",
     params(
         ("cp" = i32, Path, description = "Ruta para buscar estado, municipio y localidades por código postal", example = 14390),

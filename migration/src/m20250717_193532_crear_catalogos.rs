@@ -1,10 +1,34 @@
+//! # Migración de catálogos de ubicación geográfica
+//!
+//! Esta migración crea las tablas necesarias para almacenar la información
+//! jerárquica de estados, municipios, códigos postales y localidades,
+//! que sirven de base para el endpoint que consulta ubicaciones por código postal.
+//!
+//! ## Tablas creadas
+//!
+//! - cat_estados  
+//!   Contiene los nombres de los estados.
+//!
+//! - cat_municipios  
+//!   Depende de `cat_estados`. Almacena los municipios con su respectivo estado.
+//!
+//! - cat_codigos_postales  
+//!   Relaciona un código postal con su municipio y estado.
+//!
+//! - cat_localidades  
+//!   Contiene las localidades asociadas a un código postal, municipio y estado.
+//!
+//! Cada tabla utiliza claves primarias enteras autoincrementales y define
+//! claves foráneas explícitas para mantener la integridad referencial.
 #![allow(non_camel_case_types)]
-#[allow(unused)]
-use sea_orm_migration::{prelude::*, schema::*};
+use sea_orm_migration::prelude::*;
 
+/// Migración que crea las tablas de catálogos geográficos:
+/// estados, municipios, códigos postales y localidades.
 #[derive(DeriveMigrationName)]
 pub struct Migration;
 
+/// Estructura de la tabla `cat_estados`
 #[derive(DeriveIden)]
 pub enum cat_estados {
     Table,
@@ -12,6 +36,7 @@ pub enum cat_estados {
     estado,
 }
 
+/// Estructura de la tabla `cat_municipios`
 #[derive(DeriveIden)]
 pub enum cat_municipios {
     Table,
@@ -20,6 +45,7 @@ pub enum cat_municipios {
     id_estado,
 }
 
+/// Estructura de la tabla `cat_codigos_postales`
 #[derive(DeriveIden)]
 pub enum cat_codigos_postales {
     Table,
@@ -28,6 +54,7 @@ pub enum cat_codigos_postales {
     id_estado,
 }
 
+/// Estructura de la tabla `cat_localidades`
 #[derive(DeriveIden)]
 pub enum cat_localidades {
     Table,
@@ -40,7 +67,14 @@ pub enum cat_localidades {
 
 #[async_trait::async_trait]
 impl MigrationTrait for Migration {
+    /// Crea las tablas con sus respectivas claves primarias y foráneas.
+    /// El orden de creación sigue la jerarquía natural:
+    /// 1. Estados  
+    /// 2. Municipios  
+    /// 3. Códigos postales  
+    /// 4. Localidades
     async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
+        // Tabla de estados
         manager
             .create_table(
                 Table::create()
@@ -61,7 +95,7 @@ impl MigrationTrait for Migration {
                     .to_owned(),
             )
             .await?;
-
+        // Tabla de municipios
         manager
             .create_table(
                 Table::create()
@@ -93,7 +127,7 @@ impl MigrationTrait for Migration {
                     .to_owned(),
             )
             .await?;
-
+        // Tabla de códigos postales
         manager
             .create_table(
                 Table::create()
@@ -134,7 +168,7 @@ impl MigrationTrait for Migration {
                     .to_owned(),
             )
             .await?;
-
+        // Tabla de localidades
         manager
             .create_table(
                 Table::create()
@@ -193,6 +227,7 @@ impl MigrationTrait for Migration {
             .await
     }
 
+    /// Elimina las tablas creadas por `up` en el orden inverso para respetar dependencias.
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
         manager
             .drop_table(Table::drop().table(cat_localidades::Table).to_owned())

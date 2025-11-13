@@ -31,7 +31,7 @@ async fn main() -> std::io::Result<()> {
         .parse()
         .expect("Variable PORT debe ser de tipo u16");
 
-    // Crea pool de conexiones a la nueva base de datos de acopio
+    // Crea pool de conexiones a la base donde se crearán las tablas con los datos de ubicación
     let database_url = env::var("DATABASE_URL").expect("Variable DATABASE_URL debe ser fijada");
     let db = Database::connect(&database_url)
         .await

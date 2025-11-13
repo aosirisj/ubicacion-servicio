@@ -1,20 +1,35 @@
+//! # Controladores para endpoints de ubicación
+//! En este módulo se incluyen controladores de endpoints con las siguientes funcionalidades:
+//! - Obtener estado, municipio y localidades a partir de un código postal (`busqueda_cp_controller`)
+
 use crate::{
     entities::{prelude::*, *},
     types::catalogos::*,
+    utils::conversores::*,
 };
 use actix_web::{error, web, Error};
-use core::{
-    result::Result::{Err, Ok},
-};
 use sea_orm::{ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter};
 
-// Función para buscar CP
+/// Dado un código postal, devuelve los ids y nombres del estado, municipio y localidades correspondientes
+///
+/// ## Parámetros
+/// - `db`: Conexión a la base de datos
+/// - `cp`: Código postal del que se quieren obtener los datos
+///
+/// ## Retorno
+/// - [`CPResponse`]: Contiene estructuras para el estado y municipio correspondientes y un vector para las localidades
+/// - `Err(BadRequest)`: El formato de CP no es válido
+/// - `Err(NotFound)`: El CP introducido no fue encontrado
+/// - `Err(InternalServerError)`: Si ocurre un error inesperado durante la consulta a la base de datos
+///
+/// ## Errores
+/// Devuelve [`actix_web::Error`] en los casos antes mencionados.
 pub async fn busqueda_cp_controller(
     db: web::Data<DatabaseConnection>,
     cp: i32,
 ) -> Result<CPResponse, Error> {
-    // Valida el formato de la CURP
-    if cp > 99999 {
+    // Valida el formato del CP
+    if cp > 99999 || cp < 1000 {
         return Err(error::ErrorBadRequest("Formato de código postal inválido"));
     }
 
@@ -23,56 +38,39 @@ pub async fn busqueda_cp_controller(
         .filter(cat_localidades::Column::CodigoPostal.eq(cp))
         .all(db.get_ref())
         .await
-        .map_err(|e| error::ErrorNotFound(e))?;
+        .map_err(|e| error::ErrorInternalServerError(e))?;
+
+    if resultado.is_empty() {
+        return Err(error::ErrorNotFound("Código postal no encontrado"));
+    }
+
+    // Obtenemos estado y municipio de la primera localidad
+    let primera_localidad = &resultado[0];
+    let estado = registro_estructura(
+        db.get_ref(),
+        CatEstados::find_by_id(primera_localidad.id_estado),
+        "Error en el catalogo de estados en la base de datos",
+    )
+    .await?;
+    let municipio = registro_estructura(
+        db.get_ref(),
+        CatMunicipios::find_by_id(primera_localidad.id_municipio),
+        "Error en el catalogo de municipios en la base de datos",
+    )
+    .await?;
 
     // Crea vector de localidades
-    if let Some(primera_localidad) = resultado.clone().first() {
-        let mut localidades: Vec<Entradas> = Vec::new();
-        for localidad in resultado {
-            localidades.push(Entradas {
-                id: localidad.id,
-                value: localidad.localidad,
-            });
-        }
-
-        let estado = match CatEstados::find_by_id(primera_localidad.id_estado)
-            .one(db.get_ref())
-            .await
-            .map_err(|e| error::ErrorNotFound(e))?
-        {
-            Some(l) => Entradas {
-                id: l.id,
-                value: l.estado,
-            },
-            None => {
-                return Err(error::ErrorInternalServerError(
-                    "Error en el catalogo de estados en la base de datos",
-                ))
-            }
-        };
-        let municipio = match CatMunicipios::find_by_id(primera_localidad.id_municipio)
-            .one(db.get_ref())
-            .await
-            .map_err(|e| error::ErrorNotFound(e))?
-        {
-            Some(l) => Entradas {
-                id: l.id,
-                value: l.municipio,
-            },
-            None => {
-                return Err(error::ErrorInternalServerError(
-                    "Error en el catalogo de municipios en la base de datos",
-                ))
-            }
-        };
-
-        Ok(CPResponse {
-            estado,
-            municipio,
-            localidades,
+    let localidades: Vec<CatalogoIdCadena> = resultado
+        .into_iter()
+        .map(|l| CatalogoIdCadena {
+            id: l.id,
+            value: l.localidad,
         })
-    } else {
-        Err(error::ErrorNotFound("Código postal no encontrado"))
-    }
-}
+        .collect();
 
+    Ok(CPResponse {
+        estado,
+        municipio,
+        localidades,
+    })
+}

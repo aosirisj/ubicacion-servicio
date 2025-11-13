@@ -4,7 +4,7 @@ use actix_web_httpauth::extractors::bearer::BearerAuth;
 use crate::utils::jwt::validar_token;
 
 // Middleware para validar el token JWT
-// TODO: De momento solo valida la ecuación del token, pero no valida el contenido. Falta identificar patrones en el token que se puedan validar
+// Sólo valida la ecuación del token, pero no valida el contenido
 pub async fn validador_jwt(
     req: ServiceRequest,
     auth: Option<BearerAuth>,
